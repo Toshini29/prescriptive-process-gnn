@@ -1,0 +1,111 @@
+# A minimalistic base ontology for process knowledge
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix : <http://infs.cit.tum.de/karibdis/baseontology/> .
+@base <http://infs.cit.tum.de/karibdis/baseontology/> .
+
+
+:Task rdf:type owl:Class ;
+    rdfs:label "Task" ;
+    rdfs:comment "One specific task that has been performed, is currently being performed, or has to be performed.".
+
+:directlyFollowedBy rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain :Task ;
+    rdfs:range :Task .
+
+:activatedAt rdf:type owl:DatatypeProperty , owl:FunctionalProperty ;
+    rdfs:domain :Task ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "The timestamp at which a task became available to be executed".
+
+:plannedAt rdf:type owl:DatatypeProperty , owl:FunctionalProperty ; # This lifecycle phase can be argued to be domain-specific, but is included here for completenes purposeses
+    rdfs:domain :Task ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "The timestamp at which a task was assigned a fixed time or resources to be executed".
+    
+:startedAt rdf:type owl:DatatypeProperty , owl:FunctionalProperty ;
+    rdfs:domain :Task ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "The timestamp at which a task's execution was started".
+    
+:completedAt rdf:type owl:DatatypeProperty , owl:FunctionalProperty ;
+    rdfs:domain :Task ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "The timestamp at which a task's execution was completed".
+
+
+:Activity rdf:type owl:Class ;
+    rdfs:label "Activity" ;    
+    rdfs:comment "A recurring activity of a process".
+
+:instanceOf rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain :Task ;
+    rdfs:range :Activity ;
+    rdfs:comment "The concrete task is an instance of a recurring activity.".
+
+
+:Case rdf:type owl:Class ;
+    rdfs:label "Case" ;
+    rdfs:comment "One instance of a process such as one shopping order".
+
+:partOf rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain :Task ;
+    rdfs:range :Case ;
+    rdfs:comment "The case a task belongs to".
+
+:isClosed rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain :Case ;
+    rdfs:range xsd:boolean ;
+    rdfs:comment "Whether the case is closed, i.e., not more events are expected to happen".
+
+
+:Resource rdf:type owl:Class ;
+    rdfs:label "Resource" ;
+    rdfs:comment "An entitiy that can execute (certain) tasks".
+
+:isAvailable rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain :Resource ;
+    rdfs:range xsd:boolean ;
+    rdfs:comment "Whether the resource is currently available to work on a task".
+
+:performedBy rdf:type owl:ObjectProperty, owl:FunctionalProperty ; # Currently a functional property, i.e. 1-to-1 assigment
+    rdfs:domain :Task ;
+    rdfs:range :Resource ;
+    rdfs:comment "The resource that has performed or is currently performing the task".
+
+    
+:Role rdf:type owl:Class ;
+    rdfs:label "Role" ;
+    rdfs:comment "A label for a resource, associated with abilities and permissions to perform certain activities".
+
+:hasRole rdf:type owl:ObjectProperty; 
+    rdfs:domain :Resource ;
+    rdfs:range :Role ;
+    rdfs:comment "A role that the resource has".
+
+:canBeExecutedBy rdf:type owl:ObjectProperty ; 
+    rdfs:domain :Activity ;
+    rdfs:range [ 
+        rdf:type owl:Class ;
+        owl:unionOf ( 
+            :Resource
+            :Role
+        )
+    ] ;
+    rdfs:comment "The specific roles and/or resources that are exclusively allowed to perform an activity".
+
+:ProcessValue rdf:type owl:Class ;
+    rdfs:label "Process Value" ;
+    rdfs:comment "A non-entity variable inside a case.".
+
+:writesValue rdf:type owl:ObjectProperty;
+    rdfs:domain :Activity ;
+    rdfs:range :ProcessValue ;
+    rdfs:comment "One process value that is written by the activity.".
+
+:dataType rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain :ProcessValue ;
+    rdfs:comment "The data type of the process value, e.g. 'xsd:string' or 'xsd:integer'.".

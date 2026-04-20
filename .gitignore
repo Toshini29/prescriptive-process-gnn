@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Data / model artefacts
+*.pkl
+*.pt
+*.pth
+data/logs/
+output/
+
+# Large ontology files
+data/ontologies/mondo-simple.owl
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

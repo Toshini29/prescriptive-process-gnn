@@ -1,0 +1,243 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://infs.cit.tum.de/karibdis/baseontology/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix log: <http://example.org/> . 
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+:ProcessValue_Name a :ProcessValue ;
+    rdfs:label "Patient Name" ;
+    :dataType xsd:string .
+
+
+:SetCaseNameRule a sh:NodeShape ;
+    sh:targetClass :Case ;
+    sh:rule [
+        a sh:SPARQLRule ;
+        sh:construct """
+            CONSTRUCT {
+                ?this rdfs:label ?caselabel .
+            } WHERE {
+                ?this :ProcessValue_Name ?name .
+                FILTER NOT EXISTS { ?this rdfs:label ?existingLabel. } .
+                BIND(CONCAT("Patient ", STR( ?name )) AS ?caselabel ) .
+            }
+        """ ;
+    ] .
+
+log:Activity_ER%20Registration :writesValue :ProcessValue_Name .
+
+
+:ReleaseWithoutAdmission a :Activity ;
+    rdfs:label "Release without Admission" .
+
+
+:SIRSCriteria2OrMoreRule a sh:NodeShape ;
+    sh:targetClass :Case ;
+    sh:rule [
+        a sh:SPARQLRule ;
+        sh:construct """
+            CONSTRUCT {
+                ?this log:ProcessValue_SIRSCriteria2OrMore ?two_or_more.
+            } WHERE {
+                ?this log:ProcessValue_SIRSCritLeucos ?leucos .
+                ?this log:ProcessValue_SIRSCritTachypnea ?tachypnea .
+                ?this log:ProcessValue_SIRSCritHeartRate ?heartrate .
+                ?this log:ProcessValue_SIRSCritTemperature ?temperature .
+                BIND(IF(?leucos = true, 1, 0) + IF(?tachypnea = true, 1, 0) + IF(?heartrate = true, 1, 0) + IF(?temperature = true, 1, 0) AS ?sirs_count) .
+                BIND(?sirs_count >= 2 AS ?two_or_more)
+            }
+        """ ;
+    ] .
+
+
+:ReleaseNonSIRS a sh:PropertyShape ;
+    sh:targetClass :Task ;
+    sh:path :instanceOf__hypothetical;
+    sh:severity sh:Info;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Patients with less than two SIRS criteria should be discharged." ;
+        sh:select """
+            SELECT  $this (2 AS ?value)
+            WHERE {
+                $this :instanceOf__hypothetical :ReleaseWithoutAdmission .
+                $this :partOf / log:ProcessValue_SIRSCriteria2OrMore false . 
+            }
+        """ ;
+    ] .
+
+
+# Diseases are only present as subclasses, not as instances, so make them instances of themselves
+<http://purl.obolibrary.org/obo/MONDO_0004805> rdf:type <http://purl.obolibrary.org/obo/MONDO_0004805> . # Leukocyte disorder
+<http://purl.obolibrary.org/obo/MONDO_0005015> rdf:type <http://purl.obolibrary.org/obo/MONDO_0005015> . # Diabetes mellitus
+<http://purl.obolibrary.org/obo/MONDO_0043726> rdf:type <http://purl.obolibrary.org/obo/MONDO_0043726> . # Organ Failure
+<http://purl.obolibrary.org/obo/MONDO_1040015> rdf:type <http://purl.obolibrary.org/obo/MONDO_1040015>. # Sepsis
+
+
+
+:ProcessValue_Disease a :ProcessValue ;
+    rdfs:label "Diagnosed Disease" ;
+    :dataType <http://purl.obolibrary.org/obo/MONDO_0700096> . # Human Disease
+
+:inducesHighRisk a owl:ObjectProperty ;
+    rdfs:label "induces high risk for" ;
+    rdfs:domain <http://purl.obolibrary.org/obo/MONDO_0700096> ; # Human Disease
+    rdfs:range <http://purl.obolibrary.org/obo/MONDO_0700096> . # Human Disease
+
+<http://purl.obolibrary.org/obo/MONDO_0004805> # Leukocyte disorder
+    :inducesHighRisk <http://purl.obolibrary.org/obo/MONDO_0043726> . # Organ Failure
+
+<http://purl.obolibrary.org/obo/MONDO_0005015> # Diabetes mellitus
+    :inducesHighRisk <http://purl.obolibrary.org/obo/MONDO_0043726> . # Organ Failure
+
+:DiagnoseSepsisOnSIRSRule a sh:NodeShape ;
+    sh:targetClass :Case ;
+    sh:rule [
+        a sh:SPARQLRule ;
+        sh:construct """
+            CONSTRUCT {
+                ?this :ProcessValue_Disease <http://purl.obolibrary.org/obo/MONDO_1040015>. # Sepsis 
+            } WHERE {
+                ?this log:ProcessValue_SIRSCriteria2OrMore true . 
+            }
+        """ ;
+    ] .
+
+:normal_min a owl:DatatypeProperty ;
+    rdfs:label "Minimum of normal value range" ;
+    rdfs:domain :ProcessValue ;
+    rdfs:range xsd:float .
+
+:normal_max a owl:DatatypeProperty ;
+    rdfs:label "Maximum of normal value range" ;
+    rdfs:domain :ProcessValue ;
+    rdfs:range xsd:float .
+
+:abnormalValueFor a owl:ObjectProperty ;
+    rdfs:label "has abnormal value for" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( :Task :Case ) ] ;
+    rdfs:range :ProcessValue .
+
+
+:MeasurementOutOfBounds a sh:NodeShape ;
+    sh:targetClass :Task ;
+    sh:targetClass :Case ;
+    sh:rule [
+        a sh:SPARQLRule ;
+        sh:construct """
+            CONSTRUCT {
+                $this :abnormalValueFor ?processValue .
+            } WHERE { 
+                $this ?processValue ?value .
+                ?processValue :normal_min ?min .
+                ?processValue :normal_max ?max .
+                FILTER ( ?value < ?min || ?value > ?max )
+            }
+        """ ;
+    ] .
+
+log:ProcessValue_Leucocytes 
+    :normal_min 4.0 ;
+    :normal_max 12.0 .
+
+:DiagnoseLeukocyteDisorderRule a sh:NodeShape ;
+    sh:targetClass :Case ;
+    sh:rule [
+        a sh:SPARQLRule ;
+        sh:construct """
+            CONSTRUCT {
+                ?this :ProcessValue_Disease <http://purl.obolibrary.org/obo/MONDO_0004805>. # Leukocyte disorder 
+            } WHERE {
+                ?task_or_this :partOf? ?this.
+                ?task_or_this :abnormalValueFor log:ProcessValue_Leucocytes. 
+            }
+        """ ;
+    ] .
+
+
+:requiresAsPreventiveTreatment a owl:ObjectProperty ;
+    rdfs:label "requires as preventive treatment" ;
+    rdfs:domain <http://purl.obolibrary.org/obo/MONDO_0700096> ; # Human Disease
+    rdfs:range :Activity .
+
+<http://purl.obolibrary.org/obo/MONDO_0043726> # Organ Failure
+    :requiresAsPreventiveTreatment log:Activity_Admission%20IC .
+
+
+:PerformPreventiveTreatment a sh:PropertyShape ;
+    sh:targetClass :Task ;
+    sh:path :instanceOf__hypothetical;
+    sh:severity sh:Info;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "There is an increased risk of '{?disease}' because of '{?reasons}', which require(s) preventive action." ;
+        sh:select """
+            SELECT $this ?disease (STR(GROUP_CONCAT(?reason; separator="' and '")) AS ?reasons) (10 * COUNT(?reason) AS ?value)
+            WHERE {
+                $this :instanceOf__hypothetical ?activity .
+                ?disease :requiresAsPreventiveTreatment ?activity . 
+                $this :partOf / :ProcessValue_Disease  ?reason .
+                ?reason :inducesHighRisk ?disease .
+            }
+            GROUP BY $this ?disease
+        """ ;
+    ] .
+
+
+:AdmitSepsisPatientsRule a sh:PropertyShape ;
+    sh:targetClass :Task ;
+    sh:path :instanceOf__hypothetical;
+    sh:severity sh:Info;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Patients diagnosed with sepsis should be admitted to the hospital." ;
+        sh:select """
+            SELECT  $this (5 AS ?value)
+            WHERE {
+                $this :instanceOf__hypothetical ?activity .
+                FILTER(?activity IN (log:Activity_Admission%20IC, log:Activity_Admission%20NC)) .
+                $this :partOf / :ProcessValue_Disease <http://purl.obolibrary.org/obo/MONDO_1040015> . # Sepsis
+            }
+        """ ;
+    ] .
+
+:DontReleaseSepsisPatientsRule a sh:PropertyShape ;
+    sh:targetClass :Task ;
+    sh:path :instanceOf__hypothetical;
+    sh:severity sh:Info;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Patients diagnosed with sepsis should not be released without prior admittance to the hospital." ;
+        sh:select """
+            SELECT  $this (-3 AS ?value)
+            WHERE {
+                $this :instanceOf__hypothetical ?activity .
+                ?activity rdfs:label ?label .
+                FILTER regex(?label, "^Release", "i") .
+                $this :partOf / :ProcessValue_Disease <http://purl.obolibrary.org/obo/MONDO_1040015> . # Sepsis
+                FILTER NOT EXISTS {
+                    $this :partOf / ^:partOf / :instanceOf ?otheractivity .
+                    FILTER(?otheractivity IN (log:Activity_Admission%20IC, log:Activity_Admission%20NC)) .
+                }
+            }
+        """ ;
+    ] .
+    
+:CloseReleasedPatientCasesRule a sh:NodeShape ;
+    sh:targetClass :Case ;
+    sh:rule [
+        a sh:SPARQLRule ;
+        sh:construct """
+            CONSTRUCT {
+                ?this :isClosed True . 
+            } WHERE {
+                ?task :partOf? ?this.
+                ?task :instanceOf ?activity.
+                ?activity rdfs:label ?label .
+                FILTER regex(?label, "^Release", "i") .
+                ?task :completedAt ?time .
+            }
+        """ ;
+    ] .
