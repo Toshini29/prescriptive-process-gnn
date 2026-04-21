@@ -89,4 +89,4 @@ Place the file at `data/logs/Sepsis Cases - Event Log.xes` before running the pi
 
 ## KARIBDIS Attribution
 
-The files in `karibdis/` are adapted from the KARIBDIS framework developed at TUM. KARIBDIS constructs semantically enriched Process Knowledge Graphs from event logs using ontological alignment and SHACL-based deduction. It serves as both the PKG construction infrastructure and the rule-based evaluation baseline in this thesis.
+The files in `karibdis/` are adapted from the [KARIBDIS framework](https://github.com/INSM-TUM/karibdis) developed at the Information Systems group, Technical University of Munich. KARIBDIS constructs semantically enriched Process Knowledge Graphs from event logs using ontological alignment and SHACL-based deduction. It serves as both the PKG construction infrastructure and the rule-based evaluation baseline in this work. KARIBDIS is licensed under the MIT License — Copyright (c) 2025 Leon Bein, Information Systems @ Technical University of Munich.
