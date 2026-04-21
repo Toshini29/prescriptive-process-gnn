@@ -1,12 +1,12 @@
 """
 explainer.py -- Triple-layer explainability for prescriptive GNN.
 
-Layer 1 -- Integrated Gradients (Sundararajan et al., 2017):
+Layer 1 -- Integrated Gradients:
   Feature-level attribution: which clinical features (CRP, SIRS, Age, ...)
   drove the recommended node's score. Semantically meaningful because
   features map directly to clinical concepts.
 
-Layer 2 -- GNNExplainer (Ying et al., 2019):
+Layer 2 -- GNNExplainer:
   Edge-level attribution: which graph connections (DECLARE constraints,
   task sequences) were most influential. Structurally meaningful because
   edges encode process knowledge (chainresponse, instanceOf, etc.).
@@ -84,7 +84,7 @@ FEATURE_NAMES = (
      'is_executed_in_prefix', 'Diagnose']
 )
 
-# Clinical thresholds (mirrored from build_training_data.py)
+# Clinical thresholds
 CRP_HIGH       = 100.0
 LACTATE_HIGH   = 2.0
 LEUCOCYTES_MIN = 4.0
@@ -204,7 +204,7 @@ USE_IG = False
 try:
     from captum.attr import IntegratedGradients
     USE_IG = True
-    print("[ok] Integrated Gradients ready (Captum / Sundararajan et al., 2017)")
+    print("[ok] Integrated Gradients ready")
 except ImportError:
     print("[!] Captum not installed (pip install captum) -- IG unavailable, using gradients")
 
@@ -222,7 +222,7 @@ try:
         model_config=dict(mode='regression', task_level='node', return_type='raw'),
     )
     USE_GNNEXPLAINER = True
-    print("[ok] GNNExplainer ready (Ying et al., 2019) -- node-level")
+    print("[ok] GNNExplainer ready")
 except Exception as e:
     print(f"[!] GNNExplainer unavailable ({e})")
 
@@ -484,7 +484,6 @@ def generate_clinical_why(example, ranked, declare_edges):
     """
     Generate plain-English clinical reasoning for the recommended activity.
     Grounded in patient state, process history, and clinical rules.
-    No technical jargon.
     """
     best_uri, _, best_score = ranked[0]
     best_name  = extract_name(best_uri)
