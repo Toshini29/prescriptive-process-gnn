@@ -1,5 +1,5 @@
 """
-evaluate_karibdis.py - GNN vs real Karibdis SHACL engine (sampled evaluation).
+evaluate_karibdis.py - GNN vs KARIBDIS SHACL engine (sampled evaluation).
 
 Runs the genuine KaribdisEvaluator (pySHACL + additional_knowledge.ttl rules)
 on a representative sample of ~20 test cases across four clinical subgroups:
