@@ -1,4 +1,4 @@
-# Prescriptive Process Monitoring with Graph Neural Networks
+# SEPSIS CASE: Prescriptive Process Monitoring with Graph Neural Networks
 
 Bachelor thesis implementation — Information Systems, TUM.
 
@@ -22,7 +22,6 @@ prescriptive-process-gnn/
 │   │   └── evaluate_karibdis.py      # Comparison against KARIBDIS baseline
 │   └── explainability/
 │       ├── explainer.py              # Triple-layer explainability pipeline
-│       └── compare_ig_gradients.py   # IG vs plain gradient attribution comparison
 ├── karibdis/                         # KARIBDIS framework files (see attribution below)
 │   ├── ProcessKnowledgeGraph.py
 │   ├── KnowledgeGraphBPMS.py
@@ -55,12 +54,12 @@ python src/pipeline/build_training_data.py
 # 3. Train the GNN
 python src/pipeline/train_gat.py
 
-# 4. Evaluate
+# 4. Generate explanations
+python src/explainability/explainer.py
+
+# 5. Evaluate
 python src/evaluation/evaluate_oq_lift.py
 python src/evaluation/evaluate_karibdis.py
-
-# 5. Generate explanations
-python src/explainability/explainer.py
 ```
 
 ---
